@@ -1,0 +1,45 @@
+version: '3'
+volumes:  
+  postgres_data: {} 
+services:  
+  app:    
+    build:      
+      context: .      
+      dockerfile: ./docker/app/DockerFile
+    ports:
+      - "3000:3000"   
+    depends_on:      
+      - db
+      - sidekiq
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/docker_with_nginx_development
+  db:
+    image: postgres:latest
+    volumes:      
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres  
+  web:    
+    build:      
+      context: .      
+      dockerfile: ./docker/web/DockerFile    
+    depends_on:      
+      - app    
+    ports:      
+      - 9000:80
+  redis:
+    image: redis:latest
+    command: redis-server
+    ports:
+      - "6380:6379"
+  sidekiq:
+    build:      
+      context: .      
+      dockerfile: ./docker/web/DockerFile
+    environment:
+      RAILS_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - "redis"

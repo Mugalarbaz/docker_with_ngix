@@ -1,0 +1,41 @@
+# Use the official Ruby image as the base image
+FROM ruby:2.6.5
+
+# Install essential Linux packages
+RUN apt-get update -qq && apt-get install -y \
+    build-essential \
+    nodejs \
+    postgresql-client
+
+# Install Yarn
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
+    && echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list \
+    && apt-get update -qq && apt-get install -y yarn
+
+
+# Set an environment variable to store where the app is installed within the Docker image
+ENV INSTALL_PATH /app
+
+# Create the directory for the application within the Docker image
+RUN mkdir -p $INSTALL_PATH
+
+# Set the working directory within the Docker image
+WORKDIR $INSTALL_PATH
+
+# Copy the Gemfile and Gemfile.lock from the current directory to the Docker image
+COPY Gemfile Gemfile.lock ./
+
+# Install the Ruby gems
+RUN gem install bundler -v 2.4.22 && bundle install
+
+# Copy the rest of the application code into the container at /app
+COPY . .
+
+# # Install JavaScript dependencies using Yarn
+RUN yarn install
+
+# Expose port 3000 to the Docker host, so we can access the Rails app
+EXPOSE 3000
+
+# Start the Rails server when the container starts
+CMD ["rails", "server", "-b", "0.0.0.0"]
